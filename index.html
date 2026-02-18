@@ -158,7 +158,9 @@ input {
 </div>
 
 <script>
-const API_URL = "https://openrouter.ai/api/v1/audio/speech"; // predefined free endpoint
+
+const API_URL = "https://openrouter.ai/api/v1/audio/speech";
+const PROXY = "https://api.allorigins.win/raw?url="; // CORS fix
 
 // Load saved settings
 window.onload = () => {
@@ -199,7 +201,7 @@ async function generateSpeech() {
 
     try {
 
-        const response = await fetch(API_URL, {
+        const response = await fetch(PROXY + API_URL, {
             method: "POST",
             headers: {
                 "Authorization": "Bearer " + apiKey,
@@ -207,12 +209,16 @@ async function generateSpeech() {
             },
             body: JSON.stringify({
                 model: modelId,
+                input: text,
                 voice: "alloy",
-                input: text
+                response_format: "mp3"
             })
         });
 
-        if (!response.ok) throw new Error("API Error");
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(errText);
+        }
 
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
@@ -225,10 +231,12 @@ async function generateSpeech() {
 
     } catch (err) {
         alert("Error: " + err.message);
+        console.error(err);
     }
 
     document.getElementById("loader").style.display = "none";
 }
+
 </script>
 
 </body>
