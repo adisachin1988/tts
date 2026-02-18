@@ -1,52 +1,38 @@
 export default async function handler(req, res) {
 
+    if (req.method !== "POST") {
+        return res.status(405).json({ error: "Method not allowed" });
+    }
+
     try {
 
-        // ✅ Parse body safely
-        const body =
-            typeof req.body === "string"
-                ? JSON.parse(req.body)
-                : req.body;
+        const { text, apiKey, model } = req.body;
 
-        const { text, apiKey, model } = body;
+        const response = await fetch("https://openrouter.ai/api/v1/audio/speech", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: model,
+                input: text,
+                voice: "alloy",
+                response_format: "mp3"
+            })
+        });
 
-        if (!text || !apiKey || !model) {
-            return res.status(400).json({
-                error: "Missing text, apiKey, or model"
-            });
+        if (!response.ok) {
+            const err = await response.text();
+            return res.status(500).send(err);
         }
 
-        const aiResponse = await fetch(
-            "https://openrouter.ai/api/v1/audio/speech",
-            {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${apiKey}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: model,
-                    input: text,
-                    voice: "alloy",
-                    response_format: "mp3"
-                })
-            }
-        );
-
-        // ✅ If API error → return text
-        if (!aiResponse.ok) {
-            const errText = await aiResponse.text();
-            return res.status(500).send(errText);
-        }
-
-        const arrayBuffer = await aiResponse.arrayBuffer();
+        const buffer = await response.arrayBuffer();
 
         res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Cache-Control", "no-cache");
+        res.send(Buffer.from(buffer));
 
-        res.send(Buffer.from(arrayBuffer));
-
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 }
