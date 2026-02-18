@@ -188,59 +188,32 @@ function saveSettings() {
 
 async function generateSpeech() {
 
-    const text = document.getElementById("textInput").value;
-    const apiKey = localStorage.getItem("tts_api_key");
-    const modelId = localStorage.getItem("tts_model_id");
+    const response = await fetch("/api/tts", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        text: text,
+        apiKey: apiKey,
+        model: modelId
+    })
+});
 
-    if (!text || !apiKey || !modelId) {
-        alert("Please enter text and configure settings.");
-        return;
-    }
+const arrayBuffer = await response.arrayBuffer();
 
-    document.getElementById("loader").style.display = "block";
+const audioBlob = new Blob([arrayBuffer], {
+    type: "audio/mpeg"
+});
 
-    try {
+const audioUrl = URL.createObjectURL(audioBlob);
 
-        const response = await fetch("/api/tts", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                text: text,
-                apiKey: apiKey,
-                model: modelId
-            })
-        });
+const player = document.getElementById("audioPlayer");
 
-        // ✅ FIXED AUDIO HANDLING
-        const arrayBuffer = await response.arrayBuffer();
+player.src = audioUrl;
+player.load();
+player.play();
 
-        const audioBlob = new Blob([arrayBuffer], {
-            type: "audio/mpeg"
-        });
-
-        const audioUrl = URL.createObjectURL(audioBlob);
-
-        const player = document.getElementById("audioPlayer");
-
-        player.src = audioUrl;
-        player.load();
-
-        player.onloadeddata = () => {
-            player.play();
-        };
-
-        const downloadLink = document.getElementById("downloadLink");
-        downloadLink.href = audioUrl;
-        downloadLink.download = "speech.mp3";
-        downloadLink.style.display = "inline";
-
-    } catch (err) {
-        alert("Error: " + err.message);
-    }
-
-    document.getElementById("loader").style.display = "none";
 }
 
 
