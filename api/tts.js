@@ -6,21 +6,30 @@ export default async function handler(req, res) {
 
     try {
 
-        const { text, apiKey, model } = req.body;
-
-        const response = await fetch("https://openrouter.ai/api/v1/audio/speech", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: model,
-                input: text,
-                voice: "alloy",
-                response_format: "mp3"
-            })
+        const body = req.body || await new Promise((resolve) => {
+            let data = "";
+            req.on("data", chunk => data += chunk);
+            req.on("end", () => resolve(JSON.parse(data)));
         });
+
+        const { text, apiKey, model } = body;
+
+        const response = await fetch(
+            "https://openrouter.ai/api/v1/audio/speech",
+            {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: model,
+                    input: text,
+                    voice: "alloy",
+                    response_format: "mp3"
+                })
+            }
+        );
 
         if (!response.ok) {
             const err = await response.text();
