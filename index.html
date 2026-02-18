@@ -213,13 +213,27 @@ async function generateSpeech() {
             })
         });
 
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
+        // ✅ FIXED AUDIO HANDLING
+        const arrayBuffer = await response.arrayBuffer();
 
-        document.getElementById("audioPlayer").src = url;
+        const audioBlob = new Blob([arrayBuffer], {
+            type: "audio/mpeg"
+        });
+
+        const audioUrl = URL.createObjectURL(audioBlob);
+
+        const player = document.getElementById("audioPlayer");
+
+        player.src = audioUrl;
+        player.load();
+
+        player.onloadeddata = () => {
+            player.play();
+        };
 
         const downloadLink = document.getElementById("downloadLink");
-        downloadLink.href = url;
+        downloadLink.href = audioUrl;
+        downloadLink.download = "speech.mp3";
         downloadLink.style.display = "inline";
 
     } catch (err) {
@@ -228,6 +242,7 @@ async function generateSpeech() {
 
     document.getElementById("loader").style.display = "none";
 }
+
 
 
 </script>
