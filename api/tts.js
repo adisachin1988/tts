@@ -8,26 +8,32 @@ export default async function handler(req, res) {
 
     try {
 
-        const response = await fetch("https://openrouter.ai/api/v1/audio/speech", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: model,
-                input: text,
-                voice: "alloy",
-                response_format: "mp3"
-            })
-        });
+        const response = await fetch(
+            "https://openrouter.ai/api/v1/audio/speech",
+            {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: model,
+                    input: text,
+                    voice: "alloy",
+                    response_format: "mp3"
+                })
+            }
+        );
 
-        const buffer = await response.arrayBuffer();
+        const arrayBuffer = await response.arrayBuffer();
 
+        // ✅ VERY IMPORTANT HEADERS
         res.setHeader("Content-Type", "audio/mpeg");
-        res.send(Buffer.from(buffer));
+        res.setHeader("Content-Disposition", "inline; filename=speech.mp3");
 
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.send(Buffer.from(arrayBuffer));
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 }
