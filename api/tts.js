@@ -1,14 +1,22 @@
 export default async function handler(req, res) {
 
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method not allowed" });
-    }
-
-    const { text, apiKey, model } = req.body;
-
     try {
 
-        const response = await fetch(
+        // ✅ Parse body safely
+        const body =
+            typeof req.body === "string"
+                ? JSON.parse(req.body)
+                : req.body;
+
+        const { text, apiKey, model } = body;
+
+        if (!text || !apiKey || !model) {
+            return res.status(400).json({
+                error: "Missing text, apiKey, or model"
+            });
+        }
+
+        const aiResponse = await fetch(
             "https://openrouter.ai/api/v1/audio/speech",
             {
                 method: "POST",
@@ -25,15 +33,20 @@ export default async function handler(req, res) {
             }
         );
 
-        const arrayBuffer = await response.arrayBuffer();
+        // ✅ If API error → return text
+        if (!aiResponse.ok) {
+            const errText = await aiResponse.text();
+            return res.status(500).send(errText);
+        }
 
-        // ✅ VERY IMPORTANT HEADERS
+        const arrayBuffer = await aiResponse.arrayBuffer();
+
         res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Content-Disposition", "inline; filename=speech.mp3");
+        res.setHeader("Cache-Control", "no-cache");
 
         res.send(Buffer.from(arrayBuffer));
 
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 }
