@@ -1,1 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Text to Speech</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    margin: 0;
+    color: white;
+}
+
+header {
+    padding: 15px;
+    text-align: center;
+    background: rgba(0,0,0,0.4);
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.container {
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
+}
+
+textarea {
+    width: 100%;
+    height: 150px;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    resize: none;
+    font-size: 16px;
+}
+
+button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 16px;
+    background: #00c6ff;
+    color: black;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #00a2d6;
+}
+
+audio {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.settings-btn {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    background: orange;
+    color: black;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: #1e1e1e;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: none;
+}
+
+.loader {
+    display: none;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.spinner {
+    border: 5px solid rgba(255,255,255,0.3);
+    border-top: 5px solid white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: auto;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+</style>
+</head>
+
+<body>
+
+<header>🎙️ AI Text to Speech Generator</header>
+
+<button class="settings-btn" onclick="openSettings()">⚙️ Settings</button>
+
+<div class="container">
+
+<textarea id="textInput" placeholder="Enter text here..."></textarea>
+
+<button onclick="generateSpeech()">Generate Speech</button>
+
+<div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p>Generating audio...</p>
+</div>
+
+<audio id="audioPlayer" controls></audio>
+<br>
+<a id="downloadLink" style="display:none" download="speech.mp3">
+    <button>Download Audio</button>
+</a>
+
+</div>
+
+<!-- Settings Modal -->
+<div class="modal" id="settingsModal">
+    <div class="modal-content">
+        <h3>Settings</h3>
+
+        <label>API Key</label>
+        <input type="password" id="apiKey">
+
+        <label>Model ID</label>
+        <input type="text" id="modelId" placeholder="e.g. openai/gpt-4o-mini-tts">
+
+        <button onclick="saveSettings()">Save</button>
+        <button onclick="closeSettings()">Close</button>
+    </div>
+</div>
+
+<script>
+const API_URL = "https://openrouter.ai/api/v1/audio/speech"; // predefined free endpoint
+
+// Load saved settings
+window.onload = () => {
+    document.getElementById("apiKey").value =
+        localStorage.getItem("tts_api_key") || "";
+
+    document.getElementById("modelId").value =
+        localStorage.getItem("tts_model_id") || "";
+};
+
+function openSettings() {
+    document.getElementById("settingsModal").style.display = "flex";
+}
+
+function closeSettings() {
+    document.getElementById("settingsModal").style.display = "none";
+}
+
+function saveSettings() {
+    localStorage.setItem("tts_api_key", document.getElementById("apiKey").value);
+    localStorage.setItem("tts_model_id", document.getElementById("modelId").value);
+    alert("Settings saved!");
+    closeSettings();
+}
+
+async function generateSpeech() {
+
+    const text = document.getElementById("textInput").value;
+    const apiKey = localStorage.getItem("tts_api_key");
+    const modelId = localStorage.getItem("tts_model_id");
+
+    if (!text || !apiKey || !modelId) {
+        alert("Please enter text and configure settings.");
+        return;
+    }
+
+    document.getElementById("loader").style.display = "block";
+
+    try {
+
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + apiKey,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: modelId,
+                voice: "alloy",
+                input: text
+            })
+        });
+
+        if (!response.ok) throw new Error("API Error");
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+
+        document.getElementById("audioPlayer").src = url;
+
+        const downloadLink = document.getElementById("downloadLink");
+        downloadLink.href = url;
+        downloadLink.style.display = "inline";
+
+    } catch (err) {
+        alert("Error: " + err.message);
+    }
+
+    document.getElementById("loader").style.display = "none";
+}
+</script>
+
+</body>
+</html>
 
